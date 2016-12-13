@@ -4,6 +4,7 @@
  */
 
 require dirname(__FILE__).'/config.php';
+error_reporting(-1);
 
 $get_days = isset($_GET['days']) ? (int) $_GET['days'] : 1;
 
@@ -26,6 +27,9 @@ foreach ($orders['orders'] as $order) {
     $r02 = array();
 
     $line_items = apiCall("/order_line_items/?order_id={$order['id']}");
+    if (!isset($line_items['order_line_items'])) {
+        continue;
+    }
     foreach ($line_items['order_line_items'] as $line_item) {
         $product = array(
             'name' => '',
@@ -33,6 +37,10 @@ foreach ($orders['orders'] as $order) {
         if ($line_item['variant_id'] > 0) {
             $product = apiCall("/variants/{$line_item['variant_id']}");
             $product = reset($product);
+        }
+
+        if (empty($product['name'])) {
+            continue;
         }
 
         $sku = !empty($product['sku']) ? $product['sku'] : '';
@@ -166,7 +174,7 @@ foreach ($orders['orders'] as $order) {
         'Kurz - exchange rate' => 1,
         'Suma spolu TM - amount in all - domestic currency' => number_format($order['total'], 2, '.', ''),
         'Zakazkovy list - bill of custom-made' => '',
-        'poznamka -comment' => $order['notes'],
+        'poznamka -comment' => trim(preg_replace('/\s+/', ' ', $order['notes'])),
         'predmet fakturacie - subject of invoicing' => '',
         'partner stat - partner country' => $country,
         'Kod IC DPH - code of VAT' => '',
